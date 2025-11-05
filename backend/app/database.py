@@ -34,6 +34,9 @@ def init_db():
         # 检查并添加可能缺失的列（用于数据库迁移）
         _migrate_database_schema()
         
+        # 自动添加性能优化索引
+        _add_performance_indexes()
+        
         print("✓ 数据库初始化成功")
         return True
     except Exception as e:
@@ -51,6 +54,69 @@ def _add_column_safely(conn, table_name, column_name, column_def):
         # 列可能已存在或其他错误
         conn.rollback()
         return False
+
+
+def _add_performance_indexes():
+    """添加性能优化索引"""
+    try:
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        
+        # 定义需要的索引
+        indexes = [
+            # OptimizationSession indexes
+            ("idx_opt_session_user_id", "optimization_sessions", "user_id"),
+            ("idx_opt_session_status", "optimization_sessions", "status"),
+            ("idx_opt_session_created_at", "optimization_sessions", "created_at"),
+            
+            # OptimizationSegment indexes
+            ("idx_opt_segment_session_id", "optimization_segments", "session_id"),
+            ("idx_opt_segment_index", "optimization_segments", "segment_index"),
+            ("idx_opt_segment_status", "optimization_segments", "status"),
+            
+            # ChangeLog indexes
+            ("idx_change_log_session_id", "change_logs", "session_id"),
+            ("idx_change_log_segment_index", "change_logs", "segment_index"),
+            ("idx_change_log_stage", "change_logs", "stage"),
+        ]
+        
+        with engine.connect() as conn:
+            for index_name, table_name, column_name in indexes:
+                # 检查表是否存在
+                if table_name not in tables:
+                    continue
+                
+                try:
+                    # 获取表上现有的索引
+                    existing_indexes = inspector.get_indexes(table_name)
+                    index_names = {idx['name'] for idx in existing_indexes}
+                    
+                    # 如果索引已存在，跳过
+                    if index_name in index_names:
+                        continue
+                    
+                    # 创建索引
+                    if 'sqlite' in settings.DATABASE_URL:
+                        conn.execute(text(
+                            f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({column_name})"
+                        ))
+                    else:
+                        # PostgreSQL
+                        conn.execute(text(
+                            f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name} ({column_name})"
+                        ))
+                    conn.commit()
+                    print(f"  ✓ 添加索引: {index_name}")
+                    
+                except Exception as e:
+                    # 索引可能已存在或其他错误
+                    conn.rollback()
+                    # 静默失败，不阻止应用启动
+                    pass
+    
+    except Exception as e:
+        print(f"  ⚠ 添加性能索引警告: {str(e)}")
+        # 失败不应该阻止应用启动
 
 
 def _migrate_database_schema():
