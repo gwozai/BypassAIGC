@@ -20,4 +20,4 @@ if (-not (Test-Path "ai_polish.db")) {
 # 启动后端
 Write-Host "服务地址: http://localhost:8000" -ForegroundColor Cyan
 Write-Host "API 文档: http://localhost:8000/docs`n" -ForegroundColor Cyan
-.\venv\Scripts\python.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+.\venv\Scripts\python3.exe -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
