@@ -21,6 +21,18 @@
 
 ### 1. 首次安装
 
+**macOS 系统:**
+```bash
+# 添加执行权限
+chmod +x setup-macos.sh start-all-macos.sh
+
+# 一键配置环境（自动安装 Homebrew 和依赖）
+./setup-macos.sh
+
+# 验证安装（可选）
+./verify-installation.sh
+```
+
 **Windows 系统:**
 ```powershell
 # 一键配置环境
@@ -96,6 +108,21 @@ COMPRESSION_BASE_URL=http://IP:PORT/v1
 ### 3. 启动服务
 
 **数据库说明**: 数据库会在首次启动后端服务时自动创建，无需手动初始化。
+
+**macOS 系统:**
+```bash
+# 一键启动（推荐，使用 tmux）
+./start-all-macos.sh
+
+# 或分别启动（需要两个终端）
+./start-backend.sh   # 后端 http://localhost:8000
+./start-frontend.sh  # 前端 http://localhost:3000
+
+# 停止所有服务
+./stop-all.sh
+
+# 配置开机自启，详见 DEPLOY.md（launchd 配置）
+```
 
 **Windows 系统:**
 ```powershell

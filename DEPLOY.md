@@ -5,6 +5,7 @@
 ## 目录
 
 - [系统要求](#系统要求)
+- [macOS 部署](#macos-部署)
 - [生产环境部署](#生产环境部署)
 - [Systemd 服务配置](#systemd-服务配置)
 - [Nginx 反向代理](#nginx-反向代理)
@@ -33,6 +34,203 @@
 - SQLite 3 / PostgreSQL 12+ (推荐生产环境)
 - Redis 6+ (可选，用于队列管理)
 - Nginx (推荐作为反向代理)
+
+## macOS 部署
+
+### 快速开始
+
+macOS 用户可以使用专门的安装脚本：
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/chi111i/BypassAIGC.git
+cd BypassAIGC
+
+# 2. 添加执行权限
+chmod +x setup-macos.sh start-all-macos.sh
+
+# 3. 运行 macOS 安装脚本（会自动安装 Homebrew 和依赖）
+./setup-macos.sh
+
+# 4. 配置环境变量
+nano backend/.env
+
+# 5. 启动服务
+./start-all-macos.sh
+```
+
+### macOS 特殊说明
+
+#### 安装 Homebrew (如果尚未安装)
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+#### 依赖管理
+
+macOS 脚本会自动通过 Homebrew 安装以下依赖：
+- Python 3.11
+- Node.js (最新 LTS 版本)
+- 其他必要的系统工具
+
+#### 使用 tmux 管理服务 (推荐)
+
+```bash
+# 安装 tmux
+brew install tmux
+
+# 启动服务（自动使用 tmux）
+./start-all-macos.sh
+
+# 查看运行中的会话
+tmux ls
+
+# 进入后端会话
+tmux attach -t bypassaigc-backend
+
+# 进入前端会话
+tmux attach -t bypassaigc-frontend
+
+# 退出会话（不停止服务）
+# 按 Ctrl+B 然后按 D
+
+# 停止所有服务
+./stop-all.sh
+```
+
+#### 使用 launchd 设置开机自启 (macOS 版本的 systemd)
+
+创建后端服务配置 `~/Library/LaunchAgents/com.bypassaigc.backend.plist`：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.bypassaigc.backend</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/BypassAIGC/backend/venv/bin/uvicorn</string>
+        <string>app.main:app</string>
+        <string>--host</string>
+        <string>0.0.0.0</string>
+        <string>--port</string>
+        <string>8000</string>
+    </array>
+    
+    <key>WorkingDirectory</key>
+    <string>/opt/BypassAIGC/backend</string>
+    
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <key>KeepAlive</key>
+    <true/>
+    
+    <key>StandardOutPath</key>
+    <string>/opt/BypassAIGC/logs/backend.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/opt/BypassAIGC/logs/backend-error.log</string>
+</dict>
+</plist>
+```
+
+创建前端服务配置 `~/Library/LaunchAgents/com.bypassaigc.frontend.plist`：
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.bypassaigc.frontend</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/npm</string>
+        <string>run</string>
+        <string>dev</string>
+    </array>
+    
+    <key>WorkingDirectory</key>
+    <string>/opt/BypassAIGC/frontend</string>
+    
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <key>KeepAlive</key>
+    <true/>
+    
+    <key>StandardOutPath</key>
+    <string>/opt/BypassAIGC/logs/frontend.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/opt/BypassAIGC/logs/frontend-error.log</string>
+</dict>
+</plist>
+```
+
+启用和管理服务：
+
+```bash
+# 创建日志目录
+mkdir -p /opt/BypassAIGC/logs
+
+# 加载服务
+launchctl load ~/Library/LaunchAgents/com.bypassaigc.backend.plist
+launchctl load ~/Library/LaunchAgents/com.bypassaigc.frontend.plist
+
+# 启动服务
+launchctl start com.bypassaigc.backend
+launchctl start com.bypassaigc.frontend
+
+# 查看服务状态
+launchctl list | grep bypassaigc
+
+# 停止服务
+launchctl stop com.bypassaigc.backend
+launchctl stop com.bypassaigc.frontend
+
+# 卸载服务
+launchctl unload ~/Library/LaunchAgents/com.bypassaigc.backend.plist
+launchctl unload ~/Library/LaunchAgents/com.bypassaigc.frontend.plist
+```
+
+#### macOS 防火墙配置
+
+如果启用了防火墙，需要允许 Python 和 Node：
+
+```bash
+# 通过系统偏好设置 -> 安全性与隐私 -> 防火墙 -> 防火墙选项
+# 添加 Python 和 Node 到允许列表
+```
+
+或者使用命令行：
+
+```bash
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --add /usr/local/bin/python3
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --add /usr/local/bin/node
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /usr/local/bin/python3
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /usr/local/bin/node
+```
+
+#### macOS 常见问题
+
+**Q: 提示 "command not found: python3"**
+A: 运行 `brew install python@3.11` 并将其添加到 PATH
+
+**Q: 端口被占用**
+A: 使用 `lsof -i :8000` 查看占用进程，使用 `./stop-all.sh` 停止
+
+**Q: npm install 失败**
+A: 清除缓存 `npm cache clean --force` 然后重试
+
+**Q: 权限被拒绝**
+A: 运行 `chmod +x *.sh` 给所有脚本添加执行权限
 
 ## 生产环境部署
 
