@@ -9,7 +9,7 @@ from app.models.models import (
 )
 from app.services.ai_service import (
     AIService, split_text_into_segments, 
-    count_chinese_characters, get_default_polish_prompt,
+    count_chinese_characters, count_text_length, get_default_polish_prompt,
     get_default_enhance_prompt, get_emotion_polish_prompt, get_compression_prompt
 )
 from app.services.concurrency import concurrency_manager
@@ -206,8 +206,8 @@ class OptimizationService:
                 continue
 
             try:
-                # 标题段落直接跳过
-                if count_chinese_characters(segment.original_text) < skip_threshold:
+                # 标题段落或短段落直接跳过
+                if count_text_length(segment.original_text) < skip_threshold:
                     segment.is_title = True
                     segment.status = "completed"
                     segment.polished_text = segment.original_text

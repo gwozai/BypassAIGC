@@ -218,6 +218,25 @@ def count_chinese_characters(text: str) -> int:
     return len(chinese_pattern.findall(text))
 
 
+def count_text_length(text: str) -> int:
+    """统计文本长度（适用于中英文）
+    
+    对于中文文本，统计汉字数量
+    对于英文文本，统计字母数量
+    对于混合文本，同时统计汉字和字母
+    """
+    chinese_pattern = re.compile(r'[\u4e00-\u9fff]')
+    chinese_count = len(chinese_pattern.findall(text))
+    
+    # 如果有汉字，返回汉字数量（中文文本或中英混合）
+    if chinese_count > 0:
+        return chinese_count
+    
+    # 纯英文文本，统计字母数量
+    english_pattern = re.compile(r'[a-zA-Z]')
+    return len(english_pattern.findall(text))
+
+
 def split_text_into_segments(text: str, max_chars: int = 500) -> List[str]:
     """将文本分割为段落
     
@@ -233,7 +252,7 @@ def split_text_into_segments(text: str, max_chars: int = 500) -> List[str]:
             continue
         
         # 如果段落不超过最大字符数,直接添加
-        if count_chinese_characters(para) <= max_chars:
+        if count_text_length(para) <= max_chars:
             segments.append(para)
         else:
             # 段落过长,按句子分割
@@ -245,7 +264,7 @@ def split_text_into_segments(text: str, max_chars: int = 500) -> List[str]:
                 if i + 1 < len(sentences):
                     sentence += sentences[i + 1]  # 加上标点
                 
-                if count_chinese_characters(current_segment + sentence) <= max_chars:
+                if count_text_length(current_segment + sentence) <= max_chars:
                     current_segment += sentence
                 else:
                     if current_segment:
