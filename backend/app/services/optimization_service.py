@@ -415,8 +415,14 @@ class OptimizationService:
         
         只有压缩后的历史才保存到数据库，以避免频繁写入导致数据库膨胀。
         压缩后的内容单独保存，不影响已完成的润色和增强文本。
+        
+        注意：未压缩的历史不会保存，因为：
+        1. 润色/增强后的文本已经保存在 segments 表中
+        2. 压缩只在字符数超过阈值时触发
+        3. 压缩后的历史用于后续段落的上下文参考
         """
-        # 只有压缩后的历史才保存到数据库
+        # 检测是否为压缩后的历史：压缩后只有一条 system 消息，包含之前处理的摘要
+        # 这种检测方式与 _compress_history 的返回格式保持一致
         is_compressed = len(history) == 1 and history[0].get("role") == "system"
         
         if not is_compressed:

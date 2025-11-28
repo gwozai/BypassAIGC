@@ -19,7 +19,6 @@ const SessionDetailPage = () => {
 
   useEffect(() => {
     let eventSource = null;
-    let cleanupFn = null;
     
     const initializeSession = async () => {
       // 先加载数据
@@ -47,10 +46,6 @@ const SessionDetailPage = () => {
         console.error('SSE Error:', error);
         eventSource.close();
       };
-
-      cleanupFn = () => {
-        eventSource.close();
-      };
     };
     
     initializeSession();
@@ -58,9 +53,6 @@ const SessionDetailPage = () => {
     return () => {
       if (eventSource) {
         eventSource.close();
-      }
-      if (cleanupFn) {
-        cleanupFn();
       }
     };
   }, [sessionId]);
