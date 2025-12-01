@@ -16,6 +16,26 @@ from app.models.models import CustomPrompt
 from app.database import SessionLocal
 from app.services.ai_service import get_default_polish_prompt, get_default_enhance_prompt
 
+# 安全检查 - 在应用创建前验证配置（fail-fast模式）
+if settings.SECRET_KEY == "your-secret-key-change-this-in-production":
+    print("\n" + "="*60)
+    print("⚠️  安全警告: 检测到默认 SECRET_KEY!")
+    print("="*60)
+    print("生产环境必须修改 SECRET_KEY,否则 JWT token 可被伪造!")
+    print("请在 .env 文件中设置强密钥:")
+    print("  python -c \"import secrets; print(secrets.token_urlsafe(32))\"")
+    print("="*60 + "\n")
+    sys.exit(1)
+
+if settings.ADMIN_PASSWORD == "admin123":
+    print("\n" + "="*60)
+    print("⚠️  安全警告: 检测到默认管理员密码!")
+    print("="*60)
+    print("生产环境必须修改 ADMIN_PASSWORD!")
+    print("请在 .env 文件中设置强密码 (建议12位以上)")
+    print("="*60 + "\n")
+    # 仅警告,不强制退出 (开发环境可能需要)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -64,25 +84,6 @@ async def lifespan(app: FastAPI):
     yield
     # 关闭时清理（如有需要）
 
-# 检查默认密钥
-if settings.SECRET_KEY == "your-secret-key-change-this-in-production":
-    print("\n" + "="*60)
-    print("⚠️  安全警告: 检测到默认 SECRET_KEY!")
-    print("="*60)
-    print("生产环境必须修改 SECRET_KEY,否则 JWT token 可被伪造!")
-    print("请在 .env 文件中设置强密钥:")
-    print("  python -c \"import secrets; print(secrets.token_urlsafe(32))\"")
-    print("="*60 + "\n")
-    sys.exit(1)
-
-if settings.ADMIN_PASSWORD == "admin123":
-    print("\n" + "="*60)
-    print("⚠️  安全警告: 检测到默认管理员密码!")
-    print("="*60)
-    print("生产环境必须修改 ADMIN_PASSWORD!")
-    print("请在 .env 文件中设置强密码 (建议12位以上)")
-    print("="*60 + "\n")
-    # 仅警告,不强制退出 (开发环境可能需要)
 
 app = FastAPI(
     title="AI 论文润色增强系统",
