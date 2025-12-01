@@ -1,15 +1,10 @@
 import axios from 'axios';
 
-// 判断是否在打包环境中（通过检查是否有 /api 代理）
-// 在开发环境中使用 /api 前缀，在生产环境(exe)中直接使用根路径
+// API 基础路径配置
+// 开发环境和生产环境都使用 /api 前缀
+// 后端路由在 main.py 中以 /api 为前缀注册
 const getBaseURL = () => {
-  // 如果在开发服务器中（有代理）使用 /api
-  // 如果在生产环境（打包后）使用根路径
-  if (import.meta.env.DEV) {
-    return '/api';
-  }
-  // 生产环境直接使用根路径，因为后端和前端在同一个服务器上
-  return '';
+  return '/api';
 };
 
 const api = axios.create({
@@ -129,7 +124,7 @@ export const optimizationAPI = {
     }),
   getStreamUrl: (sessionId) => {
     const cardKey = localStorage.getItem('cardKey');
-    const baseUrl = api.defaults.baseURL || '';
+    const baseUrl = api.defaults.baseURL || '/api';
     return `${baseUrl}/optimization/sessions/${sessionId}/stream?card_key=${cardKey}`;
   },
 };
