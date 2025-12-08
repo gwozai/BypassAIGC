@@ -741,6 +741,7 @@ async def get_config(_: str = Depends(get_admin_from_token)) -> Dict[str, Any]:
             "history_compression_threshold": settings.HISTORY_COMPRESSION_THRESHOLD,
             "default_usage_limit": settings.DEFAULT_USAGE_LIMIT,
             "segment_skip_threshold": settings.SEGMENT_SKIP_THRESHOLD,
+            "use_streaming": settings.USE_STREAMING,
         },
     }
 

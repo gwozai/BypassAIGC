@@ -23,7 +23,8 @@ const ConfigManager = ({ adminToken }) => {
     COMPRESSION_API_KEY: '',
     COMPRESSION_BASE_URL: '',
     DEFAULT_USAGE_LIMIT: '',
-    SEGMENT_SKIP_THRESHOLD: ''
+    SEGMENT_SKIP_THRESHOLD: '',
+    USE_STREAMING: false
   });
 
   useEffect(() => {
@@ -54,7 +55,8 @@ const ConfigManager = ({ adminToken }) => {
         COMPRESSION_API_KEY: response.data.compression?.api_key || '',
         COMPRESSION_BASE_URL: response.data.compression?.base_url || '',
         DEFAULT_USAGE_LIMIT: response.data.system.default_usage_limit?.toString() || '',
-        SEGMENT_SKIP_THRESHOLD: response.data.system.segment_skip_threshold?.toString() || ''
+        SEGMENT_SKIP_THRESHOLD: response.data.system.segment_skip_threshold?.toString() || '',
+        USE_STREAMING: response.data.system.use_streaming || false
       });
     } catch (error) {
       toast.error('获取配置失败');
@@ -69,8 +71,11 @@ const ConfigManager = ({ adminToken }) => {
       // 只发送已修改的非空值
       const updates = {};
       Object.keys(formData).forEach(key => {
-        if (formData[key] && formData[key].trim()) {
-          updates[key] = formData[key].trim();
+        // 对于 USE_STREAMING 布尔值，转换为字符串 'true' 或 'false'
+        if (key === 'USE_STREAMING') {
+          updates[key] = formData[key] ? 'true' : 'false';
+        } else if (formData[key] && formData[key].toString().trim()) {
+          updates[key] = formData[key].toString().trim();
         }
       });
 
@@ -351,6 +356,33 @@ const ConfigManager = ({ adminToken }) => {
               className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
             />
             <p className="mt-1.5 text-xs text-gray-400">小于此字数的段落将被识别为标题并跳过</p>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-500 mb-2">
+              流式输出模式
+            </label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setFormData({...formData, USE_STREAMING: !formData.USE_STREAMING})}
+                className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors ${
+                  formData.USE_STREAMING ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                    formData.USE_STREAMING ? 'translate-x-8' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className="text-sm text-gray-700">
+                {formData.USE_STREAMING ? '启用流式输出' : '禁用流式输出（推荐）'}
+              </span>
+            </div>
+            <p className="mt-1.5 text-xs text-gray-400">
+              禁用流式输出可避免某些API（如Gemini）的阻止错误。默认禁用。
+            </p>
           </div>
         </div>
       </div>
