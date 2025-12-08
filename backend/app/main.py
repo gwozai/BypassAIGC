@@ -16,7 +16,7 @@ from app.models.models import CustomPrompt
 from app.database import SessionLocal
 from app.services.ai_service import get_default_polish_prompt, get_default_enhance_prompt
 
-# 安全检查 - 在应用创建前验证配置（fail-fast模式）
+# 安全检查 - 在应用创建前验证配置
 if settings.SECRET_KEY == "your-secret-key-change-this-in-production":
     print("\n" + "="*60)
     print("⚠️  安全警告: 检测到默认 SECRET_KEY!")
@@ -25,7 +25,7 @@ if settings.SECRET_KEY == "your-secret-key-change-this-in-production":
     print("请在 .env 文件中设置强密钥:")
     print("  python -c \"import secrets; print(secrets.token_urlsafe(32))\"")
     print("="*60 + "\n")
-    sys.exit(1)
+    # 仅警告,不强制退出 (开发环境可能需要)
 
 if settings.ADMIN_PASSWORD == "admin123":
     print("\n" + "="*60)
