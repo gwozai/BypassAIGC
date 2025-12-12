@@ -122,6 +122,99 @@ async def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/api/health/models")
+async def check_models_health():
+    """检查 AI 模型可用性"""
+    from app.services.ai_service import AIService
+    
+    results = {
+        "overall_status": "healthy",
+        "models": {}
+    }
+    
+    # 检查润色模型
+    try:
+        polish_service = AIService(
+            model=settings.POLISH_MODEL,
+            api_key=settings.POLISH_API_KEY,
+            base_url=settings.POLISH_BASE_URL
+        )
+        # 发送简单测试请求
+        test_response = await polish_service.complete(
+            messages=[{"role": "user", "content": "test"}],
+            temperature=0.7,
+            max_tokens=10
+        )
+        results["models"]["polish"] = {
+            "status": "available",
+            "model": settings.POLISH_MODEL,
+            "base_url": settings.POLISH_BASE_URL
+        }
+    except Exception as e:
+        results["models"]["polish"] = {
+            "status": "unavailable",
+            "model": settings.POLISH_MODEL,
+            "base_url": settings.POLISH_BASE_URL,
+            "error": str(e)
+        }
+        results["overall_status"] = "degraded"
+    
+    # 检查增强模型
+    try:
+        enhance_service = AIService(
+            model=settings.ENHANCE_MODEL,
+            api_key=settings.ENHANCE_API_KEY,
+            base_url=settings.ENHANCE_BASE_URL
+        )
+        test_response = await enhance_service.complete(
+            messages=[{"role": "user", "content": "test"}],
+            temperature=0.7,
+            max_tokens=10
+        )
+        results["models"]["enhance"] = {
+            "status": "available",
+            "model": settings.ENHANCE_MODEL,
+            "base_url": settings.ENHANCE_BASE_URL
+        }
+    except Exception as e:
+        results["models"]["enhance"] = {
+            "status": "unavailable",
+            "model": settings.ENHANCE_MODEL,
+            "base_url": settings.ENHANCE_BASE_URL,
+            "error": str(e)
+        }
+        results["overall_status"] = "degraded"
+    
+    # 检查感情润色模型（如果配置了）
+    if settings.EMOTION_MODEL:
+        try:
+            emotion_service = AIService(
+                model=settings.EMOTION_MODEL,
+                api_key=settings.EMOTION_API_KEY,
+                base_url=settings.EMOTION_BASE_URL
+            )
+            test_response = await emotion_service.complete(
+                messages=[{"role": "user", "content": "test"}],
+                temperature=0.7,
+                max_tokens=10
+            )
+            results["models"]["emotion"] = {
+                "status": "available",
+                "model": settings.EMOTION_MODEL,
+                "base_url": settings.EMOTION_BASE_URL
+            }
+        except Exception as e:
+            results["models"]["emotion"] = {
+                "status": "unavailable",
+                "model": settings.EMOTION_MODEL,
+                "base_url": settings.EMOTION_BASE_URL,
+                "error": str(e)
+            }
+            results["overall_status"] = "degraded"
+    
+    return results
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

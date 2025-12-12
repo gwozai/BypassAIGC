@@ -1,19 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Shield, ArrowRight, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { healthAPI } from '../api';
 
 const WelcomePage = () => {
   const [cardKey, setCardKey] = useState('');
   const [showWarning, setShowWarning] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [apiStatus, setApiStatus] = useState(null);
   const navigate = useNavigate();
+
+  // 检查 API 可用性
+  useEffect(() => {
+    const checkApiHealth = async () => {
+      try {
+        const response = await healthAPI.checkModels();
+        const data = response.data;
+        setApiStatus(data);
+        
+        // 如果所有模型都不可用，显示警告
+        if (data.overall_status === 'degraded') {
+          const unavailableModels = Object.entries(data.models)
+            .filter(([_, model]) => model.status === 'unavailable')
+            .map(([name, _]) => name);
+          
+          if (unavailableModels.length > 0) {
+            toast.error(
+              `部分 AI 模型不可用: ${unavailableModels.join(', ')}。请联系管理员检查配置。`,
+              { duration: 6000 }
+            );
+          }
+        }
+      } catch (error) {
+        console.error('API health check failed:', error);
+        toast.error('无法连接到服务器，请稍后重试', { duration: 5000 });
+      }
+    };
+
+    checkApiHealth();
+  }, []);
 
   const handleContinue = async () => {
     if (!cardKey.trim()) {
       toast.error('请输入卡密');
       return;
+    }
+
+    // 检查 API 状态
+    if (apiStatus && apiStatus.overall_status === 'degraded') {
+      const allUnavailable = Object.values(apiStatus.models).every(
+        model => model.status === 'unavailable'
+      );
+      
+      if (allUnavailable) {
+        toast.error('所有 AI 模型当前不可用，无法使用系统。请联系管理员。');
+        return;
+      } else {
+        toast.warning('部分 AI 模型不可用，系统功能可能受限。');
+      }
     }
     
     // 验证卡密
@@ -95,10 +141,16 @@ const WelcomePage = () => {
             </div>
 
             {/* 底部提示 */}
-            <div className="text-center pt-2">
+            <div className="text-center pt-2 space-y-2">
               <p className="text-xs text-ios-gray">
                 使用本系统即表示您同意遵守学术诚信规范
               </p>
+              <button
+                onClick={() => navigate('/admin')}
+                className="text-xs text-ios-blue hover:text-blue-600 underline transition-colors"
+              >
+                管理员后台
+              </button>
             </div>
           </div>
         ) : (

@@ -129,4 +129,11 @@ export const optimizationAPI = {
   },
 };
 
+// Health API
+export const healthAPI = {
+  checkModels: () => api.get('/health/models', {
+    timeout: 15000, // 15秒超时
+  }),
+};
+
 export default api;
