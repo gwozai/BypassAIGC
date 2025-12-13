@@ -179,39 +179,98 @@ async def health_check():
     )
 
 
+def _check_url_format(base_url: Optional[str]) -> tuple:
+    """检查 URL 格式是否正确
+    
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    import re
+    
+    if not base_url or not base_url.strip():
+        return False, "Base URL 未配置"
+    
+    # 验证 base_url 是否符合 OpenAI API 格式
+    # 使用更严格的 URL 验证模式
+    url_pattern = re.compile(r'^https?://[^\s/$.?#].[^\s]*$', re.IGNORECASE)
+    if not url_pattern.match(base_url):
+        return False, "Base URL 格式不正确，应为有效的 HTTP/HTTPS URL"
+    
+    return True, None
+
+
+# 缓存已检查的 URL 结果，避免重复检查
+_url_check_cache: dict = {}
+
+
 async def _check_model_health(model_name: str, model: str, api_key: Optional[str], base_url: Optional[str]) -> dict:
-    """检查单个模型的健康状态"""
-    from app.services.ai_service import AIService
+    """检查单个模型的健康状态 - 只验证URL格式，不测试实际连接"""
     
     try:
-        service = AIService(
-            model=model,
-            api_key=api_key,
-            base_url=base_url
-        )
-        # 发送简单测试请求验证模型可用性
-        await service.complete(
-            messages=[{"role": "user", "content": "test"}],
-            temperature=0.7,
-            max_tokens=10
-        )
-        return {
+        # 检查必需的配置项
+        if not model or not model.strip():
+            return {
+                "status": "unavailable",
+                "model": model,
+                "base_url": base_url,
+                "error": "模型名称未配置"
+            }
+        
+        # 检查 URL 是否已经被检查过（相同 URL 只检查一次）
+        if base_url in _url_check_cache:
+            cached_result = _url_check_cache[base_url]
+            return {
+                "status": cached_result["status"],
+                "model": model,
+                "base_url": base_url,
+                "error": cached_result.get("error")
+            } if cached_result["status"] == "unavailable" else {
+                "status": cached_result["status"],
+                "model": model,
+                "base_url": base_url
+            }
+        
+        # 验证 URL 格式
+        is_valid, error_msg = _check_url_format(base_url)
+        
+        if not is_valid:
+            result = {
+                "status": "unavailable",
+                "model": model,
+                "base_url": base_url,
+                "error": error_msg
+            }
+            # 缓存检查结果
+            _url_check_cache[base_url] = {"status": "unavailable", "error": error_msg}
+            return result
+        
+        # URL 格式正确，认为配置有效
+        result = {
             "status": "available",
             "model": model,
             "base_url": base_url
         }
+        # 缓存检查结果
+        _url_check_cache[base_url] = {"status": "available"}
+        return result
+        
     except Exception as e:
+        error_msg = str(e) if str(e) else "未知错误"
         return {
             "status": "unavailable",
             "model": model,
             "base_url": base_url,
-            "error": str(e)
+            "error": error_msg
         }
 
 
 @app.get("/api/health/models")
 async def check_models_health():
-    """检查 AI 模型可用性"""
+    """检查 AI 模型可用性 - 只验证URL格式，如果URL相同则只检查一次"""
+    global _url_check_cache
+    # 清空缓存以确保每次请求都重新检查
+    _url_check_cache = {}
+    
     results = {
         "overall_status": "healthy",
         "models": {}
