@@ -62,13 +62,14 @@ class HeadingNumberer:
         当 Markdown 中标题已有编号时，同步内部状态以避免重复。
 
         Args:
-            existing_number: 已有的编号字符串，如 "1", "2.1", "3.1.2"
+            existing_number: 已有的编号字符串，如 "1", "2.1", "3.1.2", "1．2"（含全角点号）
             level: 标题级别 (1-6)
         """
         if level < 1 or level > 6:
             return
 
-        parts = existing_number.split(self._separator)
+        # 支持半角(.)和全角(．)点号分割
+        parts = re.split(r'[.．]', existing_number)
         for i, part in enumerate(parts):
             if i < 6:
                 try:
@@ -142,8 +143,24 @@ _FRONT_ONLY_HEADINGS: Set[str] = {
     "摘要", "关键词", "关键字", "abstract", "key words", "keywords",
 }
 
-# 匹配已有编号的正则表达式：如 "1 标题", "1.2 标题", "1.2.3 标题" 等
-_EXISTING_HEADING_NUMBER_RE = re.compile(r"^(\d+(?:\.\d+)*)\s+(.+)$")
+# 匹配已有编号的正则表达式：如 "1 标题", "1.2 标题", "1．2 标题"（含全角点号）
+_EXISTING_HEADING_NUMBER_RE = re.compile(r"^(\d+(?:[.．]\d+)*)\s+(.+)$")
+
+
+def _infer_level_from_number(number_str: str) -> int:
+    """从编号字符串推断标题层级。
+
+    Args:
+        number_str: 编号字符串，如 "1", "1.1", "1.2.3", "1．1"（含全角点号）
+
+    Returns:
+        推断的层级数（1, 2, 3...）
+    """
+    if not number_str:
+        return 1
+    # 同时统计半角点号(.)和全角点号(．)
+    dot_count = number_str.count('.') + number_str.count('．')
+    return dot_count + 1
 
 
 def _is_front_heading(text: str) -> bool:
@@ -342,8 +359,16 @@ def render_docx(
                 style_id = "FrontHeading"
                 display_text = heading_text
             else:
-                # 应用级别偏移（支持 ## 作为一级标题等情况）
-                effective_level = max(1, block.level - heading_level_offset)
+                # 确定有效层级：优先使用编号推断的层级，否则使用 Markdown 语法层级
+                if existing_number:
+                    # 从编号推断层级（如 "1.1" -> 层级 2）
+                    effective_level = _infer_level_from_number(existing_number)
+                else:
+                    # 应用级别偏移（支持 ## 作为一级标题等情况）
+                    effective_level = max(1, block.level - heading_level_offset)
+
+                # 限制最大层级为 3（模板通常只支持 H1-H3）
+                effective_level = min(effective_level, 3)
 
                 if effective_level == 1:
                     style_id = "H1"
