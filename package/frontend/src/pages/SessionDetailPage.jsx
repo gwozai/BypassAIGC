@@ -16,6 +16,7 @@ const SessionDetailPage = () => {
   const [activeTab, setActiveTab] = useState('result');
   const [showExportModal, setShowExportModal] = useState(false);
   const [exportFormat, setExportFormat] = useState('txt');
+  const [resultViewMode, setResultViewMode] = useState('enhanced');
 
   useEffect(() => {
     let eventSource = null;
@@ -174,6 +175,25 @@ const SessionDetailPage = () => {
       .join('\n\n');
   };
 
+  const getPolishedText = () => {
+    return segments
+      .sort((a, b) => a.segment_index - b.segment_index)
+      .map(seg => seg.polished_text || seg.original_text)
+      .join('\n\n');
+  };
+
+  const getDisplayText = () => {
+    if (resultViewMode === 'polished') {
+      return getPolishedText();
+    }
+    return getFinalText();
+  };
+
+  const shouldShowResultSwitch = () => {
+    return session?.processing_mode === 'paper_polish_enhance'
+      && segments.some(seg => seg.polished_text && seg.enhanced_text);
+  };
+
   if (!session) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -299,13 +319,43 @@ const SessionDetailPage = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-2xl shadow-ios overflow-hidden flex flex-col h-[calc(100vh-180px)]">
                 <div className="p-3 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                  <h3 className="text-[15px] font-semibold text-black ml-2">
-                    优化后的文本
-                  </h3>
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-[15px] font-semibold text-black ml-2">
+                      {shouldShowResultSwitch()
+                        ? (resultViewMode === 'enhanced' ? '增强后的文本' : '润色后的文本')
+                        : '优化后的文本'}
+                    </h3>
+
+                    {shouldShowResultSwitch() && (
+                      <div className="bg-gray-200/80 p-0.5 rounded-lg inline-flex">
+                        <button
+                          onClick={() => setResultViewMode('polished')}
+                          className={`py-1 px-3 rounded-md text-[12px] font-medium transition-all ${
+                            resultViewMode === 'polished'
+                              ? 'bg-white text-black shadow-sm'
+                              : 'text-gray-600 hover:text-black'
+                          }`}
+                        >
+                          润色
+                        </button>
+                        <button
+                          onClick={() => setResultViewMode('enhanced')}
+                          className={`py-1 px-3 rounded-md text-[12px] font-medium transition-all ${
+                            resultViewMode === 'enhanced'
+                              ? 'bg-white text-black shadow-sm'
+                              : 'text-gray-600 hover:text-black'
+                          }`}
+                        >
+                          增强
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
                   <button
                     className="text-ios-blue text-[13px] px-3 py-1 hover:bg-blue-50 rounded-md transition-colors"
                     onClick={() => {
-                        navigator.clipboard.writeText(getFinalText());
+                        navigator.clipboard.writeText(getDisplayText());
                         toast.success('已复制到剪贴板');
                     }}
                   >
@@ -314,7 +364,7 @@ const SessionDetailPage = () => {
                 </div>
                 <div className="flex-1 overflow-y-auto p-5 bg-white custom-scrollbar">
                   <pre className="whitespace-pre-wrap font-sans text-[16px] text-black leading-relaxed">
-                    {getFinalText()}
+                    {getDisplayText()}
                   </pre>
                 </div>
               </div>
