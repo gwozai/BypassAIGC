@@ -354,6 +354,7 @@ const WorkspacePage = () => {
                   <p className="font-semibold mb-1 text-ios-blue">当前模式说明</p>
                   <p className="text-gray-700 leading-relaxed">
                     {processingMode === 'paper_polish' && '仅进行论文润色，提升文本的学术性和表达质量。'}
+                    {processingMode === 'paper_enhance' && '直接进行原创性增强，跳过润色阶段，适合已经润色过的文本。'}
                     {processingMode === 'paper_polish_enhance' && '先进行论文润色，然后自动进行原创性增强，两阶段处理。'}
                     {processingMode === 'emotion_polish' && '专为感情文章设计，生成更自然、更具人性化的表达。'}
                   </p>
@@ -376,7 +377,8 @@ const WorkspacePage = () => {
                 <div className="space-y-3">
                   {[
                     { id: 'paper_polish', title: '论文润色', desc: '提升学术表达质量' },
-                    { id: 'paper_polish_enhance', title: '润色 + 增强', desc: '提升原创性与学术水平' },
+                    { id: 'paper_enhance', title: '论文增强', desc: '直接提升原创性' },
+                    { id: 'paper_polish_enhance', title: '润色 + 增强', desc: '两阶段完整处理' },
                     { id: 'emotion_polish', title: '感情文章润色', desc: '自然、人性化表达' }
                   ].map((mode) => (
                     <label

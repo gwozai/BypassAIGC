@@ -34,8 +34,8 @@ class ModelConfig(BaseModel):
 class OptimizationCreate(BaseModel):
     """创建优化任务"""
     original_text: str
-    processing_mode: str = Field(default='paper_polish_enhance', 
-                                  description='处理模式: paper_polish, paper_polish_enhance, emotion_polish')
+    processing_mode: str = Field(default='paper_polish_enhance',
+                                  description='处理模式: paper_polish, paper_enhance, paper_polish_enhance, emotion_polish')
     polish_config: Optional[ModelConfig] = None
     enhance_config: Optional[ModelConfig] = None
     emotion_config: Optional[ModelConfig] = None
@@ -69,6 +69,7 @@ class SessionResponse(BaseModel):
     total_segments: int
     original_char_count: int = 0
     error_message: Optional[str] = None
+    processing_mode: str = 'paper_polish_enhance'
     created_at: datetime
     updated_at: datetime
     completed_at: Optional[datetime] = None

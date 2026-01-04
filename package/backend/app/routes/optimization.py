@@ -67,16 +67,18 @@ async def start_optimization(
         raise HTTPException(status_code=403, detail="该卡密已达到使用次数限制")
     
     # 验证处理模式
-    valid_modes = ['paper_polish', 'paper_polish_enhance', 'emotion_polish']
+    valid_modes = ['paper_polish', 'paper_enhance', 'paper_polish_enhance', 'emotion_polish']
     if data.processing_mode not in valid_modes:
         raise HTTPException(
-            status_code=400, 
+            status_code=400,
             detail=f"无效的处理模式。支持的模式: {', '.join(valid_modes)}"
         )
-    
+
     # 根据处理模式设置初始阶段
     if data.processing_mode == 'emotion_polish':
         initial_stage = 'emotion_polish'
+    elif data.processing_mode == 'paper_enhance':
+        initial_stage = 'enhance'
     else:
         initial_stage = 'polish'
     

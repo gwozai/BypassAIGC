@@ -134,10 +134,13 @@ class OptimizationService:
             
             # 根据处理模式执行不同的阶段
             processing_mode = self.session_obj.processing_mode or 'paper_polish_enhance'
-            
+
             if processing_mode == 'paper_polish':
                 # 只进行论文润色
                 await self._process_stage("polish")
+            elif processing_mode == 'paper_enhance':
+                # 只进行论文增强（直接增强原文）
+                await self._process_stage("enhance")
             elif processing_mode == 'emotion_polish':
                 # 只进行感情文章润色
                 await self._process_stage("emotion_polish")
@@ -290,7 +293,11 @@ class OptimizationService:
                 self.db.commit()
                 
                 # 准备输入文本
-                input_text = segment.polished_text if stage == "enhance" else segment.original_text
+                # 对于 enhance 阶段：如果有润色结果则使用，否则使用原文（适用于 paper_enhance 模式）
+                if stage == "enhance":
+                    input_text = segment.polished_text if segment.polished_text else segment.original_text
+                else:
+                    input_text = segment.original_text
                 
                 # 调用AI
                 async def execute_call():
